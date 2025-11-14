@@ -1,0 +1,445 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Приложение курьера</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Arial, sans-serif;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            overflow: hidden;
+        }
+        
+        .header {
+            background: #2c3e50;
+            color: white;
+            padding: 20px;
+            text-align: center;
+        }
+        
+        .header h1 {
+            font-size: 24px;
+            margin-bottom: 5px;
+        }
+        
+        .header .subtitle {
+            opacity: 0.8;
+            font-size: 14px;
+        }
+        
+        .orders-container {
+            padding: 20px;
+        }
+        
+        .order-card {
+            background: #f8f9fa;
+            border: 2px solid #e9ecef;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 15px;
+            transition: all 0.3s ease;
+        }
+        
+        .order-card:hover {
+            border-color: #667eea;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+        
+        .order-header {
+            display: flex;
+            justify-content: between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+        
+        .order-id {
+            background: #667eea;
+            color: white;
+            padding: 5px 10px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+        
+        .order-status {
+            padding: 5px 12px;
+            border-radius: 15px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+        
+        .status-new { background: #ffeaa7; color: #e17055; }
+        .status-accepted { background: #81ecec; color: #00cec9; }
+        .status-delivering { background: #74b9ff; color: #0984e3; }
+        .status-delivered { background: #55efc4; color: #00b894; }
+        
+        .order-details {
+            margin-bottom: 15px;
+        }
+        
+        .detail-row {
+            display: flex;
+            margin-bottom: 8px;
+            align-items: center;
+        }
+        
+        .detail-label {
+            font-weight: 600;
+            color: #2d3436;
+            min-width: 120px;
+            font-size: 14px;
+        }
+        
+        .detail-value {
+            color: #636e72;
+            font-size: 14px;
+        }
+        
+        .actions {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-bottom: 15px;
+        }
+        
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            flex: 1;
+            min-width: 120px;
+        }
+        
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        
+        .btn-accept { background: #00b894; color: white; }
+        .btn-start { background: #0984e3; color: white; }
+        .btn-deliver { background: #e17055; color: white; }
+        .btn-complete { background: #00cec9; color: white; }
+        
+        .btn:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+        
+        .photo-section {
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 1px dashed #b2bec3;
+        }
+        
+        .photo-upload {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+        
+        .photo-preview {
+            max-width: 100px;
+            max-height: 100px;
+            border-radius: 8px;
+            border: 2px solid #dfe6e9;
+            display: none;
+        }
+        
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: #00b894;
+            color: white;
+            padding: 15px 20px;
+            border-radius: 8px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+            transform: translateX(400px);
+            transition: transform 0.3s ease;
+            z-index: 1000;
+        }
+        
+        .notification.show {
+            transform: translateX(0);
+        }
+        
+        .empty-state {
+            text-align: center;
+            padding: 40px 20px;
+            color: #636e72;
+        }
+        
+        .empty-state img {
+            width: 100px;
+            opacity: 0.5;
+            margin-bottom: 15px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🚗 Приложение курьера</h1>
+            <div class="subtitle">Система управления доставкой в реальном времени</div>
+        </div>
+        
+        <div class="orders-container">
+            <div id="ordersList">
+                <!-- Заказы будут загружены здесь -->
+            </div>
+        </div>
+    </div>
+
+    <div id="notification" class="notification">
+        📱 Уведомление отправлено клиенту
+    </div>
+
+    <script>
+        // Данные заказов
+        const orders = [
+            {
+                id: 1542,
+                customer: "Иван Петров",
+                phone: "+7 999 123-45-67",
+                address: "ул. Ленина, д. 25, кв. 14",
+                items: "Пицца Пепперони, Coca-Cola 1л",
+                total: 1250,
+                status: "new",
+                createdAt: "2024-01-15 14:30"
+            },
+            {
+                id: 1543,
+                customer: "Мария Сидорова", 
+                phone: "+7 999 765-43-21",
+                address: "пр. Мира, д. 10, офис 305",
+                items: "Роллы Филадельфия x2, Соус соевый",
+                total: 980,
+                status: "accepted",
+                createdAt: "2024-01-15 14:45"
+            },
+            {
+                id: 1544,
+                customer: "Алексей Козлов",
+                phone: "+7 999 555-33-11", 
+                address: "ул. Садовая, д. 5, подъезд 2",
+                items: "Бургер Чизбургер, Картофель фри",
+                total: 650,
+                status: "delivering",
+                createdAt: "2024-01-15 15:00"
+            }
+        ];
+
+        // Элементы DOM
+        const ordersList = document.getElementById('ordersList');
+        const notification = document.getElementById('notification');
+
+        // Функция отображения уведомления
+        function showNotification(message) {
+            notification.textContent = message;
+            notification.classList.add('show');
+            setTimeout(() => {
+                notification.classList.remove('show');
+            }, 3000);
+        }
+
+        // Функция имитации отправки SMS
+        function sendSMS(phone, message) {
+            console.log(`📱 SMS отправлено на ${phone}: ${message}`);
+            showNotification(`📱 SMS отправлено: ${message}`);
+        }
+
+        // Функция обработки загрузки фото
+        function handlePhotoUpload(orderId, input) {
+            const file = input.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const preview = input.parentElement.querySelector('.photo-preview');
+                    preview.src = e.target.result;
+                    preview.style.display = 'block';
+                    
+                    // Имитация отправки фотоотчета
+                    setTimeout(() => {
+                        showNotification('📸 Фотоотчет отправлен клиенту');
+                        updateOrderStatus(orderId, 'delivered');
+                    }, 1000);
+                }
+                reader.readAsDataURL(file);
+            }
+        }
+
+        // Функция обновления статуса заказа
+        function updateOrderStatus(orderId, newStatus) {
+            const order = orders.find(o => o.id === orderId);
+            if (order) {
+                const oldStatus = order.status;
+                order.status = newStatus;
+                
+                // Отправка уведомлений при смене статуса
+                switch(newStatus) {
+                    case 'accepted':
+                        sendSMS(order.phone, `Курьер выехал к вам. Заказ №${orderId}`);
+                        break;
+                    case 'delivering':
+                        sendSMS(order.phone, `Курьер уже в пути к вам!`);
+                        break;
+                    case 'delivered':
+                        sendSMS(order.phone, `Заказ доставлен! Спасибо за выбор нашей доставки!`);
+                        break;
+                }
+                
+                renderOrders();
+            }
+        }
+
+        // Функция рендера заказов
+        function renderOrders() {
+            if (orders.length === 0) {
+                ordersList.innerHTML = `
+                    <div class="empty-state">
+                        <div>📭</div>
+                        <h3>Нет активных заказов</h3>
+                        <p>Новые заказы появятся здесь автоматически</p>
+                    </div>
+                `;
+                return;
+            }
+
+            ordersList.innerHTML = orders.map(order => {
+                const statusText = {
+                    'new': 'Новый',
+                    'accepted': 'Принят', 
+                    'delivering': 'В пути',
+                    'delivered': 'Доставлен'
+                }[order.status];
+
+                const statusClass = {
+                    'new': 'status-new',
+                    'accepted': 'status-accepted',
+                    'delivering': 'status-delivering', 
+                    'delivered': 'status-delivered'
+                }[order.status];
+
+                return `
+                    <div class="order-card">
+                        <div class="order-header">
+                            <div class="order-id">Заказ #${order.id}</div>
+                            <div class="order-status ${statusClass}">${statusText}</div>
+                        </div>
+                        
+                        <div class="order-details">
+                            <div class="detail-row">
+                                <div class="detail-label">Клиент:</div>
+                                <div class="detail-value">${order.customer}</div>
+                            </div>
+                            <div class="detail-row">
+                                <div class="detail-label">Телефон:</div>
+                                <div class="detail-value">${order.phone}</div>
+                            </div>
+                            <div class="detail-row">
+                                <div class="detail-label">Адрес:</div>
+                                <div class="detail-value">${order.address}</div>
+                            </div>
+                            <div class="detail-row">
+                                <div class="detail-label">Заказ:</div>
+                                <div class="detail-value">${order.items}</div>
+                            </div>
+                            <div class="detail-row">
+                                <div class="detail-label">Сумма:</div>
+                                <div class="detail-value">${order.total} руб.</div>
+                            </div>
+                        </div>
+                        
+                        <div class="actions">
+                            ${order.status === 'new' ? 
+                                `<button class="btn btn-accept" onclick="updateOrderStatus(${order.id}, 'accepted')">
+                                    ✅ Принять заказ
+                                </button>` : ''}
+                            
+                            ${order.status === 'accepted' ? 
+                                `<button class="btn btn-start" onclick="updateOrderStatus(${order.id}, 'delivering')">
+                                    🚗 Начать доставку
+                                </button>` : ''}
+                            
+                            ${order.status === 'delivering' ? 
+                                `<button class="btn btn-deliver" onclick="updateOrderStatus(${order.id}, 'delivered')">
+                                    📍 Доставить заказ
+                                </button>` : ''}
+                        </div>
+                        
+                        ${order.status === 'delivering' ? `
+                            <div class="photo-section">
+                                <div class="detail-label">Фотоотчет:</div>
+                                <div class="photo-upload">
+                                    <input type="file" accept="image/*" 
+                                           onchange="handlePhotoUpload(${order.id}, this)" 
+                                           style="flex: 1; padding: 8px; border: 1px dashed #ccc; border-radius: 5px;">
+                                    <img class="photo-preview" alt="Предпросмотр">
+                                </div>
+                            </div>
+                        ` : ''}
+                        
+                        ${order.status === 'delivered' ? `
+                            <div style="text-align: center; padding: 10px; background: #d4edda; border-radius: 5px; color: #155724;">
+                                ✅ Заказ успешно доставлен
+                            </div>
+                        ` : ''}
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // Имитация получения новых заказов
+        function simulateNewOrder() {
+            if (Math.random() > 0.7) { // 30% шанс нового заказа
+                const newOrder = {
+                    id: Date.now(),
+                    customer: ["Ольга Новикова", "Дмитрий Волков", "Светлана Ковалева"][Math.floor(Math.random() * 3)],
+                    phone: "+7 999 " + Math.floor(100 + Math.random() * 900) + "-" + Math.floor(10 + Math.random() * 90) + "-" + Math.floor(10 + Math.random() * 90),
+                    address: ["ул. Центральная, д. 15", "пр. Победы, д. 33", "ул. Молодежная, д. 8"][Math.floor(Math.random() * 3)],
+                    items: ["Суши сет", "Пицца Маргарита", "Бургер с беконом"][Math.floor(Math.random() * 3)],
+                    total: Math.floor(500 + Math.random() * 1000),
+                    status: "new",
+                    createdAt: new Date().toISOString()
+                };
+                orders.unshift(newOrder);
+                renderOrders();
+                showNotification('🆕 Поступил новый заказ!');
+            }
+        }
+
+        // Инициализация
+        renderOrders();
+
+        // Имитация работы в реальном времени
+        setInterval(simulateNewOrder, 10000); // Проверка новых заказов каждые 10 секунд
+
+        // Демонстрация уведомления при загрузке
+        setTimeout(() => {
+            showNotification('Система доставки запущена и готова к работе');
+        }, 1000);
+    </script>
+</body>
+</html>
