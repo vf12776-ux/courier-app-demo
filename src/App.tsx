@@ -1,10 +1,12 @@
+// src/App.tsx
 import React from 'react'
+import './App.css'
 
 function App() {
   return (
-    <div>
-      <h1>Courier App - Демо версия</h1>
-      <p>Функционал заказов и уведомлений в разработке</p>
+    <div className="App">
+      <h1>Courier App</h1>
+      <p>Заказы будут здесь</p>
     </div>
   )
 }
